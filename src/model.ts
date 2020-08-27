@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment, @typescript-eslint/no-explicit-any */
 import Ajv from 'ajv'
 import { JSONSchema } from './schema'
-import { Type, InferShapeOfMap, SchemaMap, Model, ModelInit } from './types'
+import { Type, InferShapeOfMap, Model, ShapeMap } from './types'
 
 export const string = (): Type<string> =>
     new Type({
@@ -19,11 +19,9 @@ export const boolean = (): Type<boolean> =>
 let index = 0
 
 export function fm(ajv: Ajv.Ajv) {
-    function model<
-        Map extends SchemaMap,
-        Instance extends InferShapeOfMap<Map>,
-        Class extends Model<Instance>
-    >(map: Map): Class {
+    function model<Map extends ShapeMap, Class extends Model<Map>>(
+        map: Map
+    ): Class {
         const id = String(index++)
 
         const schema = {
@@ -67,7 +65,7 @@ export function fm(ajv: Ajv.Ajv) {
         // Type 'typeof (Anonymous class)' is not assignable to type 'Class'.
         //   'Class' could be instantiated with an arbitrary type which could be unrelated to 'typeof (Anonymous class)'.ts(2322)
         return class extends constructor {
-            static type = new Type<Instance>({
+            static type = new Type<InferShapeOfMap<Map>>({
                 $ref: id,
             })
             static extend(merged: Map) {

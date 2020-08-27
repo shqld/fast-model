@@ -49,7 +49,9 @@ export type ExtractMetaFromType<T extends Type> = T extends Type<
     ? M
     : never
 
-export type RequiredKeys<Map extends SchemaMap> = Pick<
+export type ShapeMap = Record<string, Type>
+
+export type RequiredKeys<Map extends ShapeMap> = Pick<
     Map,
     {
         [K in keyof Map]-?: ExtractMetaFromType<Map[K]>['required'] extends true
@@ -59,31 +61,21 @@ export type RequiredKeys<Map extends SchemaMap> = Pick<
 >
 
 // waiting for https://github.com/microsoft/TypeScript/pull/40002
-export type InferShapeOfMap<Map extends SchemaMap> = {
+export type InferShapeOfMap<Map extends ShapeMap> = {
     [K in keyof Map]?: InferValueOfType<Map[K]>
 } &
     {
         [L in keyof RequiredKeys<Map>]-?: InferValueOfType<Map[L]>
     }
 
-export type SchemaMap = Record<string, Type>
-
-export type InferInstance<T extends Model<any>> = T extends Model<infer U>
-    ? U
-    : never
-
-export type Model<Instance> = {
-    new (obj: Instance): Instance
-    raw(obj: any): Instance
-    validate(obj: any): void
-    extend<
-        _Map extends SchemaMap,
-        _Instance extends InferShapeOfMap<_Map>,
-        _Class extends Model<_Instance & Instance>
-    >(
-        map: _Map
-    ): _Class
-    type: Type<Instance>
-}
-
 export type ModelInit<Instance> = OmitByValue<Instance, Function>
+
+export type Model<Map extends ShapeMap, Shape = InferShapeOfMap<Map>> = {
+    type: Type<Shape>
+    new (obj: Shape): Shape
+    raw(obj: any): Shape
+    validate(obj: any): void
+    extend<ExtendedMap extends ShapeMap>(
+        map: ExtendedMap
+    ): Model<ExtendedMap & Map>
+}
