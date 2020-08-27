@@ -101,9 +101,7 @@ export function fm(ajv: Ajv.Ajv) {
 
         ajv.addSchema(schema)
 
-        const constructor = new Function('obj', mapping.join(';')) as {
-            new (obj: any): any
-        }
+        const constructor: Class = new Function('obj', mapping.join(';')) as any
 
         const remapper = remapping.length
             ? (new Function('obj', remapping.join(';')) as (obj: any) => any)
@@ -111,31 +109,30 @@ export function fm(ajv: Ajv.Ajv) {
 
         let validate: Ajv.ValidateFunction
 
+        constructor.type = new Type<InferShapeOfMap<Map>>({
+            $ref: id,
+        })
+        constructor.extend = ((extended: Map) =>
+            model({
+                ...map,
+                ...extended,
+            })) as any
+        constructor.validate = (obj: any) => {
+            if (!validate) validate = ajv.compile(constructor.type[s.__schema])
+            validate(obj)
+            if (validate.errors)
+                throw new ValidationError(ajv.errorsText(validate.errors))
+        }
+        constructor.raw = (obj: any) => {
+            constructor.validate(obj)
+            if (remapper) remapper(obj)
+            return new constructor(obj)
+        }
+
         // @ts-ignore
         // Type 'typeof (Anonymous class)' is not assignable to type 'Class'.
         //   'Class' could be instantiated with an arbitrary type which could be unrelated to 'typeof (Anonymous class)'.ts(2322)
-        return class extends constructor {
-            static type = new Type<InferShapeOfMap<Map>>({
-                $ref: id,
-            })
-            static extend(merged: Map) {
-                return model({
-                    ...map,
-                    ...merged,
-                })
-            }
-            static validate(obj: any) {
-                if (!validate) validate = ajv.compile(this.type[s.__schema])
-                validate(obj)
-                if (validate.errors)
-                    throw new ValidationError(ajv.errorsText(validate.errors))
-            }
-            static raw(obj: any) {
-                this.validate(obj)
-                if (remapper) remapper(obj)
-                return new this(obj)
-            }
-        }
+        return constructor
     }
 
     return {
