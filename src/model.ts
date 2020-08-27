@@ -1,7 +1,13 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment, @typescript-eslint/no-explicit-any */
 import Ajv from 'ajv'
 import { JSONSchema } from './schema'
-import { Type, InferShapeOfMap, Model, ShapeMap } from './types'
+import {
+    Type,
+    InferShapeOfMap,
+    Model,
+    ShapeMap,
+    InferValueOfType,
+} from './types'
 
 // TODO(@shqld): might collide
 const genId = () => ((Date.now() % 99) + Math.random() * 99).toString(36)
@@ -49,6 +55,14 @@ export const object = <Map extends ShapeMap>(
 
     return new Type(schema)
 }
+
+export const array = <T extends Type>(
+    obj: T
+): Type<Array<InferValueOfType<T>>> =>
+    new Type({
+        type: 'array',
+        items: obj.__schema,
+    })
 
 export function fm(ajv: Ajv.Ajv) {
     function model<Map extends ShapeMap, Class extends Model<Map>>(

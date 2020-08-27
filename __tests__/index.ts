@@ -199,6 +199,59 @@ describe('Model', () => {
 })
 
 describe('types', () => {
+    describe('array', () => {
+        test('primitive', () => {
+            const type = m.array(m.string())
+
+            expect(type.__schema).toMatchInlineSnapshot(`
+                Object {
+                  "items": Object {
+                    "type": "string",
+                  },
+                  "type": "array",
+                }
+            `)
+        })
+
+        test('object', () => {
+            const type = m.array(m.object({ a: m.string() }))
+
+            expect(type.__schema).toMatchInlineSnapshot(`
+                Object {
+                  "items": Object {
+                    "properties": Object {
+                      "a": Object {
+                        "type": "string",
+                      },
+                    },
+                    "required": Array [],
+                    "type": "object",
+                  },
+                  "type": "array",
+                }
+            `)
+        })
+
+        test('model', () => {
+            const { model } = fm(new Ajv())
+
+            const m1 = model({
+                a: m.string(),
+            })
+
+            const type = m.array(m1.type)
+
+            expect(type.__schema).toMatchObject({
+                type: 'array',
+                items: {},
+            })
+            expect(type.__schema.items).toHaveProperty(
+                '$ref',
+                m1.type.__schema.$ref
+            )
+        })
+    })
+
     describe('object', () => {
         test('plain', () => {
             const type = m.object({
