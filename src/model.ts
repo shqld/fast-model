@@ -88,12 +88,12 @@ export function fm(ajv: Ajv.Ajv) {
         const remapping = []
 
         for (const key in map) {
-            mapping.push('this.' + key + '=obj.' + key)
+            mapping.push('this.' + key + '=o.' + key)
 
             const type = map[key]
 
             if (type[s.__source]) {
-                remapping.push('obj.' + key + '=obj.' + type[s.__source])
+                remapping.push('o.' + key + '=o.' + type[s.__source])
             }
 
             mapToProps(schema, type[s.__source] || key, type)
@@ -101,10 +101,10 @@ export function fm(ajv: Ajv.Ajv) {
 
         ajv.addSchema(schema)
 
-        const constructor: Class = new Function('obj', mapping.join(';')) as any
+        const constructor: Class = new Function('o', mapping.join(';')) as any
 
         const remapper = remapping.length
-            ? (new Function('obj', remapping.join(';')) as (obj: any) => any)
+            ? (new Function('o', remapping.join(';')) as (obj: any) => any)
             : null
 
         let validate: Ajv.ValidateFunction
