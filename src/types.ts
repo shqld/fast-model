@@ -1,16 +1,8 @@
 import { JSONSchema } from './schema'
 import { OmitByValue } from 'utility-types'
 
-export type InferValueOfType<T extends Type> = T extends Type<infer U>
-    ? U
-    : never
-
-export type A = {
-    required: boolean
-    source?: string
-    __schema: JSONSchema
-}
 export class Type<
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     Inferred = any,
     Meta extends { required: boolean } = { required: false }
 > {
@@ -23,21 +15,32 @@ export class Type<
     }
 
     required<This extends Type>(
-        this: This
+        this: This,
+        required?: true
+    ): This extends Type<infer T, infer M> ? Type<T, { required: true }> : never
+    required<This extends Type>(
+        this: This,
+        required: false
     ): This extends Type<infer T, infer M>
-        ? Type<T, { required: true }>
-        : never {
+        ? Type<T, { required: false }>
+        : never
+    required(): this {
         this.__required = true
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-ignore
         return this
     }
 
-    source<This extends Type>(this: This, source: Readonly<string>): This {
+    source<This extends Type>(
+        this: This,
+        source: Readonly<string> | undefined
+    ): This {
         this.__source = source
         return this
     }
 }
+
+export type InferValueOfType<T extends Type> = T extends Type<infer U>
+    ? U
+    : never
 
 export type ExtractMetaFromType<T extends Type> = T extends Type<
     unknown,
