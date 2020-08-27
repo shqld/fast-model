@@ -7,6 +7,7 @@
     "main": "dist/index.cjs",
     "module": "dist/index.mjs",
     "unpkg": "dist/index.js",
+    "types": "dist/index.d.ts",
     "files": [
         "src",
         "dist"
@@ -16,6 +17,9 @@
         "lint": "eslint . --ext .ts --color",
         "type": "tsc --pretty",
         "test": "jest --color"
+    },
+    "dependencies": {
+        "json-schema": "^0.2.5"
     },
     "peerDependencies": {
         "ajv": "6.x"
@@ -42,7 +46,6 @@
         "eslint": "^7.2.0",
         "eslint-config-prettier": "^6.11.0",
         "jest": "^26.0.1",
-        "json-schema": "^0.2.5",
         "microbundle": "^0.12.2",
         "prettier": "^2.0.5",
         "rollup": "^2.23.1",

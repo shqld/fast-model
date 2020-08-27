@@ -2,9 +2,10 @@
 import * as s from './symbols'
 import { mapProps } from './map-props'
 
-import type { JSONSchema } from './json-schema'
+import type { JSONSchema7 as JSONSchema } from 'json-schema'
 import type { InferValueOfType, InferShapeOfMap } from './inference'
 
+export type { JSONSchema }
 export type ShapeMap = Record<string, Type>
 
 export class Type<

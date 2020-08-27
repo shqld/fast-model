@@ -1,6 +1,5 @@
 import * as s from './symbols'
-import type { JSONSchema } from './json-schema'
-import type { Type } from './types'
+import type { JSONSchema, Type } from './types'
 
 export function mapProps(
     schema: JSONSchema & {

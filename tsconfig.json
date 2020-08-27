@@ -4,6 +4,8 @@
         "emitDeclarationOnly": true,
         "strict": true,
         "esModuleInterop": true,
-        "moduleResolution": "node"
-    }
+        "moduleResolution": "node",
+        "outFile": "dist/index.js"
+    },
+    "exclude": ["./__tests__", "./dist"]
 }

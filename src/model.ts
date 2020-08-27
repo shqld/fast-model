@@ -8,7 +8,7 @@ import { mapProps } from './map-props'
 import { ValidationError } from './error'
 
 import type { InferShapeOfMap } from './inference'
-import type { JSONSchema } from './json-schema'
+import type { JSONSchema } from './types'
 
 // TODO(@shqld): might collide
 const genId = () => ((Date.now() % 99) + Math.random() * 99).toString(36)
