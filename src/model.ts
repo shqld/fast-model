@@ -12,6 +12,9 @@ import {
 // TODO(@shqld): might collide
 const genId = () => ((Date.now() % 99) + Math.random() * 99).toString(36)
 
+export class ValidationError extends Error {}
+ValidationError.prototype.name = 'ValidationError'
+
 export const string = (): Type<string> =>
     new Type({
         type: 'string',
@@ -124,7 +127,7 @@ export function fm(ajv: Ajv.Ajv) {
                 if (!validate) validate = ajv.compile(this.type.__schema)
                 validate(obj)
                 if (validate.errors)
-                    throw new Error(ajv.errorsText(validate.errors))
+                    throw new ValidationError(ajv.errorsText(validate.errors))
             }
             static raw(obj: any) {
                 this.validate(obj)
