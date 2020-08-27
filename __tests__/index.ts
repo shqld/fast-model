@@ -1,6 +1,7 @@
-import * as m from '../src/model'
-import { fm } from '../src/model'
 import Ajv from 'ajv'
+import * as m from '../src'
+import { fm } from '../src'
+import * as s from '../src/symbols'
 
 describe('Model', () => {
     const ajv = new Ajv()
@@ -203,7 +204,7 @@ describe('types', () => {
         test('primitive', () => {
             const type = m.array(m.string())
 
-            expect(type.__schema).toMatchInlineSnapshot(`
+            expect(type[s.__schema]).toMatchInlineSnapshot(`
                 Object {
                   "items": Object {
                     "type": "string",
@@ -216,7 +217,7 @@ describe('types', () => {
         test('object', () => {
             const type = m.array(m.object({ a: m.string() }))
 
-            expect(type.__schema).toMatchInlineSnapshot(`
+            expect(type[s.__schema]).toMatchInlineSnapshot(`
                 Object {
                   "items": Object {
                     "properties": Object {
@@ -241,13 +242,13 @@ describe('types', () => {
 
             const type = m.array(m1.type)
 
-            expect(type.__schema).toMatchObject({
+            expect(type[s.__schema]).toMatchObject({
                 type: 'array',
                 items: {},
             })
-            expect(type.__schema.items).toHaveProperty(
+            expect(type[s.__schema].items).toHaveProperty(
                 '$ref',
-                m1.type.__schema.$ref
+                m1.type[s.__schema].$ref
             )
         })
     })
@@ -258,7 +259,7 @@ describe('types', () => {
                 a: m.string(),
             })
 
-            expect(type.__schema).toMatchInlineSnapshot(`
+            expect(type[s.__schema]).toMatchInlineSnapshot(`
                 Object {
                   "properties": Object {
                     "a": Object {
@@ -276,7 +277,7 @@ describe('types', () => {
                 a: m.string().required(),
             })
 
-            expect(type.__schema).toMatchInlineSnapshot(`
+            expect(type[s.__schema]).toMatchInlineSnapshot(`
                 Object {
                   "properties": Object {
                     "a": Object {
@@ -300,7 +301,7 @@ describe('types', () => {
                     .required(),
             })
 
-            expect(type.__schema).toMatchInlineSnapshot(`
+            expect(type[s.__schema]).toMatchInlineSnapshot(`
                 Object {
                   "properties": Object {
                     "o": Object {

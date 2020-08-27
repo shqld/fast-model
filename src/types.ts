@@ -1,7 +1,11 @@
 /* eslint-disable @typescript-eslint/no-inferrable-types */
 import * as s from './symbols'
-import { JSONSchema } from './schema'
-import { OmitByValue } from 'utility-types'
+import { mapProps } from './map-props'
+
+import type { JSONSchema } from './json-schema'
+import type { InferValueOfType, InferShapeOfMap } from './inference'
+
+export type ShapeMap = Record<string, Type>
 
 export class Type<
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -40,44 +44,42 @@ export class Type<
     }
 }
 
-export type InferValueOfType<T extends Type> = T extends Type<infer U>
-    ? U
-    : never
+export const string = (): Type<string> =>
+    new Type({
+        type: 'string',
+    })
+export const number = (): Type<number> =>
+    new Type({
+        type: 'number',
+    })
+export const boolean = (): Type<boolean> =>
+    new Type({
+        type: 'boolean',
+    })
 
-export type ExtractMetaFromType<T extends Type> = T extends Type<
-    unknown,
-    infer M
->
-    ? M
-    : never
-
-export type ShapeMap = Record<string, Type>
-
-export type RequiredKeys<Map extends ShapeMap> = Pick<
-    Map,
-    {
-        [K in keyof Map]-?: ExtractMetaFromType<Map[K]>['required'] extends true
-            ? K
-            : never
-    }[keyof Map]
->
-
-// waiting for https://github.com/microsoft/TypeScript/pull/40002
-export type InferShapeOfMap<Map extends ShapeMap> = {
-    [K in keyof Map]?: InferValueOfType<Map[K]>
-} &
-    {
-        [L in keyof RequiredKeys<Map>]-?: InferValueOfType<Map[L]>
+export const object = <Map extends ShapeMap>(
+    props: Map
+): Type<InferShapeOfMap<Map>> => {
+    const schema: JSONSchema & {
+        properties: Record<string, JSONSchema>
+        required: Array<string>
+    } = {
+        type: 'object',
+        properties: {},
+        required: [],
     }
 
-export type ModelInit<Instance> = OmitByValue<Instance, Function>
+    for (const key in props) {
+        mapProps(schema, key, props[key])
+    }
 
-export type Model<Map extends ShapeMap, Shape = InferShapeOfMap<Map>> = {
-    type: Type<Shape>
-    new (obj: Shape): Shape
-    raw(obj: any): Shape
-    validate(obj: any): void
-    extend<ExtendedMap extends ShapeMap>(
-        map: ExtendedMap
-    ): Model<ExtendedMap & Map>
+    return new Type(schema)
 }
+
+export const array = <T extends Type>(
+    obj: T
+): Type<Array<InferValueOfType<T>>> =>
+    new Type({
+        type: 'array',
+        items: obj[s.__schema],
+    })

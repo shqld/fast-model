@@ -1,73 +1,31 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment, @typescript-eslint/no-explicit-any */
 import type Ajv from 'ajv'
+import type { OmitByValue } from 'utility-types'
+
 import * as s from './symbols'
-import { JSONSchema } from './schema'
-import {
-    Type,
-    InferShapeOfMap,
-    Model,
-    ShapeMap,
-    InferValueOfType,
-} from './types'
+import { Type, ShapeMap } from './types'
+import { mapProps } from './map-props'
+import { ValidationError } from './error'
+
+import type { InferShapeOfMap } from './inference'
+import type { JSONSchema } from './json-schema'
 
 // TODO(@shqld): might collide
 const genId = () => ((Date.now() % 99) + Math.random() * 99).toString(36)
 
-export class ValidationError extends Error {}
-ValidationError.prototype.name = 'ValidationError'
+export type ModelInit<Instance> = OmitByValue<Instance, Function>
 
-export const string = (): Type<string> =>
-    new Type({
-        type: 'string',
-    })
-export const number = (): Type<number> =>
-    new Type({
-        type: 'number',
-    })
-export const boolean = (): Type<boolean> =>
-    new Type({
-        type: 'boolean',
-    })
-
-function mapToProps(
-    schema: JSONSchema & {
-        properties: Record<string, JSONSchema>
-        required: Array<string>
-    },
-    key: string,
-    type: Type
-) {
-    schema.properties[key] = type[s.__schema]
-    if (type[s.__required]) schema.required.push(key)
+export type Model<Map extends ShapeMap, Shape = InferShapeOfMap<Map>> = {
+    type: Type<Shape>
+    new (obj: Shape): Shape
+    raw(obj: any): Shape
+    validate(obj: any): void
+    extend<ExtendedMap extends ShapeMap>(
+        map: ExtendedMap
+    ): Model<ExtendedMap & Map>
 }
 
-export const object = <Map extends ShapeMap>(
-    props: Map
-): Type<InferShapeOfMap<Map>> => {
-    const schema: JSONSchema & {
-        properties: Record<string, JSONSchema>
-        required: Array<string>
-    } = {
-        type: 'object',
-        properties: {},
-        required: [],
-    }
-
-    for (const key in props) {
-        mapToProps(schema, key, props[key])
-    }
-
-    return new Type(schema)
-}
-
-export const array = <T extends Type>(
-    obj: T
-): Type<Array<InferValueOfType<T>>> =>
-    new Type({
-        type: 'array',
-        items: obj[s.__schema],
-    })
-
+// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 export function fm(ajv: Ajv.Ajv) {
     function model<Map extends ShapeMap, Class extends Model<Map>>(
         map: Map
@@ -96,7 +54,7 @@ export function fm(ajv: Ajv.Ajv) {
                 remapping.push('o.' + key + '=o.' + type[s.__source])
             }
 
-            mapToProps(schema, type[s.__source] || key, type)
+            mapProps(schema, type[s.__source] || key, type)
         }
 
         ajv.addSchema(schema)
@@ -139,36 +97,3 @@ export function fm(ajv: Ajv.Ajv) {
         model,
     }
 }
-
-// const ajv = new Ajv()
-// const { model } = fm(ajv)
-
-// const B = model({
-//     a: number(),
-//     b: number().required(),
-//     c: string(),
-//     d: string().required(),
-// })
-// const b = new B({ a: 1, b: 2, c: '', d: '' })
-
-// const D = model({ e: string().required(), f: B.type.required() })
-// const d = new D({ e: '', f: { b: 2, d: '' } })
-// d.f
-
-// class C extends B {
-//     a: number
-
-//     constructor(obj: Optional<ModelInit<C>, 'a'>) {
-//         super(obj)
-
-//         if (!obj.a) throw new Error('')
-//         this.a = obj.a
-//     }
-
-//     x() {
-//         return this.d
-//     }
-// }
-
-// const c = new C({ b: 2, c: '', d: '' })
-// c.c
