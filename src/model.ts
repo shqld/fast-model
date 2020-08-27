@@ -3,6 +3,9 @@ import Ajv from 'ajv'
 import { JSONSchema } from './schema'
 import { Type, InferShapeOfMap, Model, ShapeMap } from './types'
 
+// TODO(@shqld): might collide
+const genId = () => ((Date.now() % 99) + Math.random() * 99).toString(36)
+
 export const string = (): Type<string> =>
     new Type({
         type: 'string',
@@ -16,13 +19,11 @@ export const boolean = (): Type<boolean> =>
         type: 'boolean',
     })
 
-let index = 0
-
 export function fm(ajv: Ajv.Ajv) {
     function model<Map extends ShapeMap, Class extends Model<Map>>(
         map: Map
     ): Class {
-        const id = String(index++)
+        const id = genId()
 
         const schema = {
             $id: id,
