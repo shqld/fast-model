@@ -1,7 +1,6 @@
 import * as m from '../src/model'
 import { fm } from '../src/model'
 import Ajv from 'ajv'
-import { ModelInit } from '../src/types'
 
 describe('Model', () => {
     const ajv = new Ajv()

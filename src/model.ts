@@ -39,15 +39,16 @@ export function fm(ajv: Ajv.Ajv) {
         for (let key in map) {
             mapping.push('this.' + key + '=obj.' + key)
 
-            const type = map[key].__type
+            const type = map[key]
 
-            if (type.source) {
-                remapping.push('obj.' + key + '=obj.' + type.source)
-                key = type.source as any
+            if (type.__source) {
+                remapping.push('obj.' + key + '=obj.' + type.__source)
+                // @ts-expect-error
+                key = type.__source
             }
 
             schema.properties[key] = type.__schema
-            if (type.required) schema.required.push(key)
+            if (type.__required) schema.required.push(key)
         }
 
         ajv.addSchema(schema)
@@ -76,7 +77,7 @@ export function fm(ajv: Ajv.Ajv) {
                 })
             }
             static validate(obj: any) {
-                if (!validate) validate = ajv.compile(this.type.__type.__schema)
+                if (!validate) validate = ajv.compile(this.type.__schema)
                 validate(obj)
                 if (validate.errors)
                     throw new Error(ajv.errorsText(validate.errors))

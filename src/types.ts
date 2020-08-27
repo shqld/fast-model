@@ -14,12 +14,12 @@ export class Type<
     Inferred = any,
     Meta extends { required: boolean } = { required: false }
 > {
-    __type: A = {
-        required: false,
-    } as A
+    __schema: JSONSchema
+    __required = false
+    __source?: string
 
     constructor(schema: JSONSchema) {
-        this.__type.__schema = schema
+        this.__schema = schema
     }
 
     required<This extends Type>(
@@ -27,14 +27,14 @@ export class Type<
     ): This extends Type<infer T, infer M>
         ? Type<T, { required: true }>
         : never {
-        this.__type.required = true
+        this.__required = true
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-ignore
         return this
     }
 
     source<This extends Type>(this: This, source: Readonly<string>): This {
-        this.__type.source = source
+        this.__source = source
         return this
     }
 }
