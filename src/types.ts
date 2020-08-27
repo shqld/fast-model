@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-inferrable-types */
+import * as s from './symbols'
 import { JSONSchema } from './schema'
 import { OmitByValue } from 'utility-types'
 
@@ -6,12 +8,12 @@ export class Type<
     Inferred = any,
     Meta extends { required: boolean } = { required: false }
 > {
-    __schema: JSONSchema
-    __required = false
-    __source?: string
+    [s.__schema]: JSONSchema;
+    [s.__required]: boolean = false;
+    [s.__source]?: string
 
     constructor(schema: JSONSchema) {
-        this.__schema = schema
+        this[s.__schema] = schema
     }
 
     required<This extends Type>(
@@ -25,7 +27,7 @@ export class Type<
         ? Type<T, { required: false }>
         : never
     required(): this {
-        this.__required = true
+        this[s.__required] = true
         return this
     }
 
@@ -33,7 +35,7 @@ export class Type<
         this: This,
         source: Readonly<string> | undefined
     ): This {
-        this.__source = source
+        this[s.__source] = source
         return this
     }
 }

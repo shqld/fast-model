@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment, @typescript-eslint/no-explicit-any */
-import Ajv from 'ajv'
+import type Ajv from 'ajv'
+import * as s from './symbols'
 import { JSONSchema } from './schema'
 import {
     Type,
@@ -36,8 +37,8 @@ function mapToProps(
     key: string,
     type: Type
 ) {
-    schema.properties[key] = type.__schema
-    if (type.__required) schema.required.push(key)
+    schema.properties[key] = type[s.__schema]
+    if (type[s.__required]) schema.required.push(key)
 }
 
 export const object = <Map extends ShapeMap>(
@@ -64,7 +65,7 @@ export const array = <T extends Type>(
 ): Type<Array<InferValueOfType<T>>> =>
     new Type({
         type: 'array',
-        items: obj.__schema,
+        items: obj[s.__schema],
     })
 
 export function fm(ajv: Ajv.Ajv) {
@@ -91,11 +92,11 @@ export function fm(ajv: Ajv.Ajv) {
 
             const type = map[key]
 
-            if (type.__source) {
-                remapping.push('obj.' + key + '=obj.' + type.__source)
+            if (type[s.__source]) {
+                remapping.push('obj.' + key + '=obj.' + type[s.__source])
             }
 
-            mapToProps(schema, type.__source || key, type)
+            mapToProps(schema, type[s.__source] || key, type)
         }
 
         ajv.addSchema(schema)
@@ -124,7 +125,7 @@ export function fm(ajv: Ajv.Ajv) {
                 })
             }
             static validate(obj: any) {
-                if (!validate) validate = ajv.compile(this.type.__schema)
+                if (!validate) validate = ajv.compile(this.type[s.__schema])
                 validate(obj)
                 if (validate.errors)
                     throw new ValidationError(ajv.errorsText(validate.errors))
