@@ -18,6 +18,23 @@ export const boolean = (): Type<boolean> =>
     new Type({
         type: 'boolean',
     })
+export const object = <Map extends ShapeMap>(
+    props: Map
+): Type<InferShapeOfMap<Map>> => {
+    const schema: JSONSchema = {
+        type: 'object',
+        properties: {},
+        required: [],
+    }
+
+    for (const key in props) {
+        const type = props[key]
+        schema.properties![key] = type.__schema
+        if (type.__required) schema.required!.push(key)
+    }
+
+    return new Type(schema)
+}
 
 export function fm(ajv: Ajv.Ajv) {
     function model<Map extends ShapeMap, Class extends Model<Map>>(

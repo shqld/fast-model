@@ -197,3 +197,77 @@ describe('Model', () => {
         })
     })
 })
+
+describe('types', () => {
+    describe('object', () => {
+        test('plain', () => {
+            const type = m.object({
+                a: m.string(),
+            })
+
+            expect(type.__schema).toMatchInlineSnapshot(`
+                Object {
+                  "properties": Object {
+                    "a": Object {
+                      "type": "string",
+                    },
+                  },
+                  "required": Array [],
+                  "type": "object",
+                }
+            `)
+        })
+
+        test('with required()', () => {
+            const type = m.object({
+                a: m.string().required(),
+            })
+
+            expect(type.__schema).toMatchInlineSnapshot(`
+                Object {
+                  "properties": Object {
+                    "a": Object {
+                      "type": "string",
+                    },
+                  },
+                  "required": Array [
+                    "a",
+                  ],
+                  "type": "object",
+                }
+            `)
+        })
+
+        test('nested', () => {
+            const type = m.object({
+                o: m
+                    .object({
+                        a: m.string().required(),
+                    })
+                    .required(),
+            })
+
+            expect(type.__schema).toMatchInlineSnapshot(`
+                Object {
+                  "properties": Object {
+                    "o": Object {
+                      "properties": Object {
+                        "a": Object {
+                          "type": "string",
+                        },
+                      },
+                      "required": Array [
+                        "a",
+                      ],
+                      "type": "object",
+                    },
+                  },
+                  "required": Array [
+                    "o",
+                  ],
+                  "type": "object",
+                }
+            `)
+        })
+    })
+})
