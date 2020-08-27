@@ -18,19 +18,33 @@ export const boolean = (): Type<boolean> =>
     new Type({
         type: 'boolean',
     })
+
+function mapToProps(
+    schema: JSONSchema & {
+        properties: Record<string, JSONSchema>
+        required: Array<string>
+    },
+    key: string,
+    type: Type
+) {
+    schema.properties[key] = type.__schema
+    if (type.__required) schema.required.push(key)
+}
+
 export const object = <Map extends ShapeMap>(
     props: Map
 ): Type<InferShapeOfMap<Map>> => {
-    const schema: JSONSchema = {
+    const schema: JSONSchema & {
+        properties: Record<string, JSONSchema>
+        required: Array<string>
+    } = {
         type: 'object',
         properties: {},
         required: [],
     }
 
     for (const key in props) {
-        const type = props[key]
-        schema.properties![key] = type.__schema
-        if (type.__required) schema.required!.push(key)
+        mapToProps(schema, key, props[key])
     }
 
     return new Type(schema)
@@ -42,7 +56,10 @@ export function fm(ajv: Ajv.Ajv) {
     ): Class {
         const id = genId()
 
-        const schema = {
+        const schema: JSONSchema & {
+            properties: Record<string, JSONSchema>
+            required: Array<string>
+        } = {
             $id: id,
             type: 'object',
             properties: {} as Record<string, JSONSchema>,
@@ -52,19 +69,16 @@ export function fm(ajv: Ajv.Ajv) {
         const mapping = []
         const remapping = []
 
-        for (let key in map) {
+        for (const key in map) {
             mapping.push('this.' + key + '=obj.' + key)
 
             const type = map[key]
 
             if (type.__source) {
                 remapping.push('obj.' + key + '=obj.' + type.__source)
-                // @ts-expect-error
-                key = type.__source
             }
 
-            schema.properties[key] = type.__schema
-            if (type.__required) schema.required.push(key)
+            mapToProps(schema, type.__source || key, type)
         }
 
         ajv.addSchema(schema)
