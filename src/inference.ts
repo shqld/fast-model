@@ -1,14 +1,27 @@
-import type { Type, ShapeMap } from './types'
+import type { Type, TypeCreator, ShapeMap } from './types'
 
-export type InferValueOfType<T extends Type> = T extends Type<infer U>
+export type InferValueOfType<T extends Type | TypeCreator> = T extends Type<
+    infer U
+>
     ? U
+    : T extends TypeCreator
+    ? ReturnType<T> extends Type<infer U>
+        ? U
+        : never
     : never
 
-export type ExtractMetaFromType<T extends Type> = T extends Type<
+export type ExtractMetaFromType<T extends Type | TypeCreator> = T extends Type<
     unknown,
     infer M
 >
     ? M
+    : T extends TypeCreator
+    ? ReturnType<T> extends Type<
+    unknown,
+    infer N
+    >
+        ? N
+        : never
     : never
 
 export type RequiredKeys<Map extends ShapeMap> = Pick<

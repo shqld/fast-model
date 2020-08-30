@@ -6,7 +6,8 @@ import type { JSONSchema7 as JSONSchema } from 'json-schema'
 import type { InferValueOfType, InferShapeOfMap } from './inference'
 
 export type { JSONSchema }
-export type ShapeMap = Record<string, Type>
+export type TypeCreator = (self: Type) => Type
+export type ShapeMap = Record<string, Type | TypeCreator>
 
 export class Type<
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -58,7 +59,7 @@ export const boolean = (): Type<boolean> =>
         type: 'boolean',
     })
 
-export const object = <Map extends ShapeMap>(
+export const object = <Map extends Record<string, Type>>(
     props: Map
 ): Type<InferShapeOfMap<Map>> => {
     const schema: JSONSchema & {

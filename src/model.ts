@@ -3,7 +3,7 @@ import type Ajv from 'ajv'
 import type { OmitByValue } from 'utility-types'
 
 import * as s from './symbols'
-import { Type, ShapeMap } from './types'
+import { Type, ShapeMap, TypeCreator } from './types'
 import { mapProps } from './map-props'
 import { ValidationError } from './error'
 
@@ -32,6 +32,10 @@ export function fm(ajv: Ajv.Ajv) {
     ): Class {
         const id = genId()
 
+        const modelType = new Type<InferShapeOfMap<Map>>({
+            $ref: id,
+        })
+
         const schema: JSONSchema & {
             properties: Record<string, JSONSchema>
             required: Array<string>
@@ -48,7 +52,8 @@ export function fm(ajv: Ajv.Ajv) {
         for (const key in map) {
             mapping.push('this.' + key + '=o.' + key)
 
-            const type = map[key]
+            const prop: Type | TypeCreator = map[key]
+            const type = typeof prop !== 'function' ? prop : prop(modelType)
 
             if (type[s.__source]) {
                 remapping.push('o.' + key + '=o.' + type[s.__source])
@@ -67,9 +72,7 @@ export function fm(ajv: Ajv.Ajv) {
 
         let validate: Ajv.ValidateFunction
 
-        constructor.type = new Type<InferShapeOfMap<Map>>({
-            $ref: id,
-        })
+        constructor.type = modelType
         constructor.extend = ((extended: Map) =>
             model({
                 ...map,
