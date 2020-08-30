@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment, @typescript-eslint/no-explicit-any */
 import type Ajv from 'ajv'
-import type { OmitByValue } from 'utility-types'
 
 import * as s from './symbols'
 import { Type, Definition, TypeCreator } from './types'
@@ -13,7 +12,12 @@ import type { JSONSchema } from './types'
 // TODO(@shqld): might collide
 const genId = () => ((Date.now() % 99) + Math.random() * 99).toString(36)
 
-export type ModelInit<Instance> = OmitByValue<Instance, Function>
+export type ModelInit<Model> = Pick<
+    Model,
+    {
+        [K in keyof Model]-?: Model[K] extends Function ? never : K
+    }[keyof Model]
+>
 
 export type Model<Def extends Definition, Shape = InferShapeOfDef<Def>> = {
     type: Type<Shape>
