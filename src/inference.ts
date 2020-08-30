@@ -1,4 +1,4 @@
-import type { Type, TypeCreator, ShapeMap } from './types'
+import type { Type, TypeCreator, Definition } from './types'
 
 export type InferValueOfType<T extends Type | TypeCreator> = T extends Type<
     infer U
@@ -16,27 +16,24 @@ export type ExtractMetaFromType<T extends Type | TypeCreator> = T extends Type<
 >
     ? M
     : T extends TypeCreator
-    ? ReturnType<T> extends Type<
-    unknown,
-    infer N
-    >
+    ? ReturnType<T> extends Type<unknown, infer N>
         ? N
         : never
     : never
 
-export type RequiredKeys<Map extends ShapeMap> = Pick<
-    Map,
+export type RequiredKeys<Def extends Definition> = Pick<
+    Def,
     {
-        [K in keyof Map]-?: ExtractMetaFromType<Map[K]>['required'] extends true
+        [K in keyof Def]-?: ExtractMetaFromType<Def[K]>['required'] extends true
             ? K
             : never
-    }[keyof Map]
+    }[keyof Def]
 >
 
 // waiting for https://github.com/microsoft/TypeScript/pull/40002
-export type InferShapeOfMap<Map extends ShapeMap> = {
-    [K in keyof Map]?: InferValueOfType<Map[K]>
+export type InferShapeOfDef<Def extends Definition> = {
+    [K in keyof Def]?: InferValueOfType<Def[K]>
 } &
     {
-        [L in keyof RequiredKeys<Map>]-?: InferValueOfType<Map[L]>
+        [L in keyof RequiredKeys<Def>]-?: InferValueOfType<Def[L]>
     }

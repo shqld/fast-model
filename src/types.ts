@@ -3,11 +3,11 @@ import * as s from './symbols'
 import { mapProps } from './map-props'
 
 import type { JSONSchema7 as JSONSchema } from 'json-schema'
-import type { InferValueOfType, InferShapeOfMap } from './inference'
+import type { InferValueOfType, InferShapeOfDef } from './inference'
 
 export type { JSONSchema }
 export type TypeCreator = (self: Type) => Type
-export type ShapeMap = Record<string, Type | TypeCreator>
+export type Definition = Record<string, Type | TypeCreator>
 
 export class Type<
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -59,9 +59,9 @@ export const boolean = (): Type<boolean> =>
         type: 'boolean',
     })
 
-export const object = <Map extends Record<string, Type>>(
-    props: Map
-): Type<InferShapeOfMap<Map>> => {
+export const object = <Def extends Record<string, Type>>(
+    props: Def
+): Type<InferShapeOfDef<Def>> => {
     const schema: JSONSchema & {
         properties: Record<string, JSONSchema>
         required: Array<string>
