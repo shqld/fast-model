@@ -1,14 +1,13 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment, @typescript-eslint/no-explicit-any */
 import type Ajv from 'ajv'
 import type * as Immer from 'immer'
-import type Produce from 'immer'
 
 import * as s from './symbols'
 import { Type, Definition, TypeCreator } from './types'
 import { mapProps } from './map-props'
 import { ValidationError } from './error'
 
-import type { InferShapeOfDef } from './inference'
+import type { InferShapeOfDef, InferModelByOptions } from './inference'
 import type { JSONSchema } from './types'
 
 // TODO(@shqld): might collide
@@ -26,94 +25,43 @@ export interface Model<Def extends Definition, Shape = InferShapeOfDef<Def>> {
     new (obj: Shape): Shape
     create(obj: Shape): Shape
     raw(obj: any): Shape
-    extend<ExtendedDef extends Definition>(
-        def: ExtendedDef
-    ): Model<ExtendedDef & Def>
-}
-
-export interface ValidationModel<
-    Def extends Definition,
-    Shape = InferShapeOfDef<Def>
-> extends Model<Def, Shape> {
-    validate(obj: any): void
-    extend<ExtendedDef extends Definition>(
-        def: ExtendedDef
-    ): ValidationModel<ExtendedDef & Def>
-}
-
-export interface ImmutableModel<
-    Def extends Definition,
-    Shape = InferShapeOfDef<Def>
-> extends Model<Def, Shape> {
-    produce: typeof Immer.produce
-    extend<ExtendedDef extends Definition>(
-        def: ExtendedDef
-    ): ImmutableModel<ExtendedDef & Def>
 }
 
 export interface Options {
-    ajv?: Ajv.Ajv | false
-    immer?: typeof Immer | false
+    ajv?:
+        | {
+              compile: Ajv.Ajv['compile']
+              errorsText: Ajv.Ajv['errorsText']
+              addSchema: Ajv.Ajv['addSchema']
+          }
+        | false
+    immer?:
+        | {
+              produce: typeof Immer.produce
+              immerable: typeof Immer.immerable
+          }
+        | false
 }
 
-type InferModelByOpts<
-    Def extends Definition,
-    Opts extends Options
-> = (Opts['ajv'] extends Ajv.Ajv ? ValidationModel<Def> : Model<Def>) &
-    (Opts['immer'] extends typeof Immer ? ImmutableModel<Def> : Model<Def>)
-
-export function init(): {
-    model<Def extends Definition, Class extends Model<Def>>(def: Def): Class
+type Extensions = {
+    extend(def: Definition): Extensions
+    validate(obj: any): void
+    produce: Function
 }
-// @ts-ignore This overload signature is not compatible with its implementation signature.ts(2394)
+
 export function init<Opts extends Options>(
-    options: Opts
+    opts?: Opts
 ): {
-    model<
-        Def extends Definition,
-        Class extends Model<
-            Def,
-            Opts['immer'] extends typeof Immer
-                ? Readonly<InferShapeOfDef<Def>>
-                : InferShapeOfDef<Def>
-        > &
-            (Opts['ajv'] extends Ajv.Ajv
-                ? {
-                      validate(obj: any): void
-                      extend<ExtendedDef extends Definition>(
-                          def: ExtendedDef
-                      ): ValidationModel<ExtendedDef & Def>
-                  }
-                : {}) &
-            (Opts['immer'] extends typeof Immer
-                ? {
-                      produce: typeof Immer.produce &
-                          (<T extends Readonly<InferShapeOfDef<Def>>>(
-                              base: T,
-                              updater: (draft: T) => T
-                          ) => Readonly<InferShapeOfDef<Def>>)
-                      extend<ExtendedDef extends Definition>(
-                          def: ExtendedDef
-                      ): ImmutableModel<ExtendedDef & Def>
-                  }
-                : {})
-    >(
+    model<Def extends Definition, Class extends InferModelByOptions<Def, Opts>>(
         def: Def
     ): Class
-}
+} {
+    const { ajv, immer } = opts || {}
 
-// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-export function init({
-    ajv,
-    immer,
-}: { ajv?: Ajv.Ajv; immer?: typeof Immer } = {}) {
-    function model<
-        Def extends Definition,
-        Class extends Model<Def> & ValidationModel<Def> & ImmutableModel<Def>
-    >(def: Def): Class {
+    function model(def: Definition): Model<any> & Extensions {
         const id = genId()
 
-        const modelType = new Type<InferShapeOfDef<Def>>({
+        const modelType = new Type({
             $ref: id,
         })
 
@@ -146,7 +94,10 @@ export function init({
         if (ajv) ajv.addSchema(schema)
         if (immer) mapping.push('return this.constructor.produce(this, o=>o)')
 
-        const constructor: Class = new Function('o', mapping.join(';')) as any
+        const constructor: Model<any> & Extensions = new Function(
+            'o',
+            mapping.join(';')
+        ) as any
 
         const remapper = remapping.length
             ? (new Function('o', remapping.join(';')) as (obj: any) => any)
@@ -158,11 +109,11 @@ export function init({
         }
 
         constructor.type = modelType
-        constructor.extend = ((extended: Def) =>
+        constructor.extend = (extended: Definition) =>
             model({
                 ...def,
                 ...extended,
-            })) as any
+            })
         constructor.create = (obj: any) => new constructor(obj)
         constructor.raw = raw
 
@@ -192,10 +143,7 @@ export function init({
     }
 
     return {
+        // @ts-expect-error ts(2322)
         model,
     }
-}
-
-function passThrough<T>(obj: T): T {
-    return obj
 }

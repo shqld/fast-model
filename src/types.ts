@@ -22,6 +22,10 @@ export class Type<
         this[s.__schema] = schema
     }
 
+    get schema(): JSONSchema {
+        return this[s.__schema]
+    }
+
     required<This extends Type>(
         this: This,
         required?: true
