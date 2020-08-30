@@ -1,5 +1,7 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment, @typescript-eslint/no-explicit-any */
 import type Ajv from 'ajv'
+import type * as Immer from 'immer'
+import type Produce from 'immer'
 
 import * as s from './symbols'
 import { Type, Definition, TypeCreator } from './types'
@@ -34,24 +36,80 @@ export interface ValidationModel<
     Shape = InferShapeOfDef<Def>
 > extends Model<Def, Shape> {
     validate(obj: any): void
+    extend<ExtendedDef extends Definition>(
+        def: ExtendedDef
+    ): ValidationModel<ExtendedDef & Def>
 }
+
+export interface ImmutableModel<
+    Def extends Definition,
+    Shape = InferShapeOfDef<Def>
+> extends Model<Def, Shape> {
+    produce: typeof Immer.produce
+    extend<ExtendedDef extends Definition>(
+        def: ExtendedDef
+    ): ImmutableModel<ExtendedDef & Def>
+}
+
+export interface Options {
+    ajv?: Ajv.Ajv | false
+    immer?: typeof Immer | false
+}
+
+type InferModelByOpts<
+    Def extends Definition,
+    Opts extends Options
+> = (Opts['ajv'] extends Ajv.Ajv ? ValidationModel<Def> : Model<Def>) &
+    (Opts['immer'] extends typeof Immer ? ImmutableModel<Def> : Model<Def>)
 
 export function init(): {
     model<Def extends Definition, Class extends Model<Def>>(def: Def): Class
 }
-export function init(
-    ajv: Ajv.Ajv
+// @ts-ignore This overload signature is not compatible with its implementation signature.ts(2394)
+export function init<Opts extends Options>(
+    options: Opts
 ): {
-    model<Def extends Definition, Class extends ValidationModel<Def>>(
+    model<
+        Def extends Definition,
+        Class extends Model<
+            Def,
+            Opts['immer'] extends typeof Immer
+                ? Readonly<InferShapeOfDef<Def>>
+                : InferShapeOfDef<Def>
+        > &
+            (Opts['ajv'] extends Ajv.Ajv
+                ? {
+                      validate(obj: any): void
+                      extend<ExtendedDef extends Definition>(
+                          def: ExtendedDef
+                      ): ValidationModel<ExtendedDef & Def>
+                  }
+                : {}) &
+            (Opts['immer'] extends typeof Immer
+                ? {
+                      produce: typeof Immer.produce &
+                          (<T extends Readonly<InferShapeOfDef<Def>>>(
+                              base: T,
+                              updater: (draft: T) => T
+                          ) => Readonly<InferShapeOfDef<Def>>)
+                      extend<ExtendedDef extends Definition>(
+                          def: ExtendedDef
+                      ): ImmutableModel<ExtendedDef & Def>
+                  }
+                : {})
+    >(
         def: Def
     ): Class
 }
 
 // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-export function init(ajv?: Ajv.Ajv) {
+export function init({
+    ajv,
+    immer,
+}: { ajv?: Ajv.Ajv; immer?: typeof Immer } = {}) {
     function model<
         Def extends Definition,
-        Class extends Model<Def> & ValidationModel<Def>
+        Class extends Model<Def> & ValidationModel<Def> & ImmutableModel<Def>
     >(def: Def): Class {
         const id = genId()
 
@@ -86,6 +144,7 @@ export function init(ajv?: Ajv.Ajv) {
         }
 
         if (ajv) ajv.addSchema(schema)
+        if (immer) mapping.push('return this.constructor.produce(this, o=>o)')
 
         const constructor: Class = new Function('o', mapping.join(';')) as any
 
@@ -121,6 +180,10 @@ export function init(ajv?: Ajv.Ajv) {
                 return raw(obj)
             }
         }
+        if (immer) {
+            constructor.prototype[immer.immerable] = true
+            constructor.produce = immer.produce
+        }
 
         // @ts-ignore
         // Type 'typeof (Anonymous class)' is not assignable to type 'Class'.
@@ -131,4 +194,8 @@ export function init(ajv?: Ajv.Ajv) {
     return {
         model,
     }
+}
+
+function passThrough<T>(obj: T): T {
+    return obj
 }

@@ -1,12 +1,37 @@
+/* eslint-disable @typescript-eslint/ban-ts-comment */
 import Ajv from 'ajv'
+import * as immer from 'immer'
 import * as m from '../src'
-import { fm } from '../src'
+import { init } from '../src'
 import * as s from '../src/symbols'
+
+describe('a', () => {
+    const ajv = new Ajv()
+    const { model } = init({ immer, ajv })
+
+    test('mutabllity', () => {
+        class B extends model({ a: m.string() }) {}
+
+        const b = new B({ a: 'aaa' })
+        expect(b.a).toBe('aaa')
+
+        // @ts-expect-error
+        expect(() => (b.a = 'bbb')).toThrowErrorMatchingInlineSnapshot(
+            `"Cannot assign to read only property 'a' of object '#<B>'"`
+        )
+
+        const c = B.produce(b, (draft) => {
+            draft.a = 'xxx'
+        })
+
+        expect(c.a).toBe('xxx')
+    })
+})
 
 describe('Model', () => {
     const ajv = new Ajv()
 
-    const { model } = fm(ajv)
+    const { model } = init({ ajv })
 
     describe('contains primitives', () => {
         describe('plain', () => {
@@ -234,7 +259,7 @@ describe('types', () => {
         })
 
         test('model', () => {
-            const { model } = fm(new Ajv())
+            const { model } = init({ ajv: new Ajv() })
 
             const m1 = model({
                 a: m.string(),
