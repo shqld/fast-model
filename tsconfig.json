@@ -5,7 +5,12 @@
         "strict": true,
         "esModuleInterop": true,
         "moduleResolution": "node",
-        "outFile": "dist/index.js"
+        "outFile": "dist/index.js",
+        "rootDir": "src",
+        "sourceRoot": "src",
+        "mapRoot": "src",
+        "sourceMap": true
     },
-    "exclude": ["./__tests__", "./dist"]
+    "include": ["src/**/*"],
+    "exclude": ["__tests__", "dist"]
 }
