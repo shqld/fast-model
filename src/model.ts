@@ -22,8 +22,9 @@ export type ModelInit<Model> = Pick<
 export type Model<Def extends Definition, Shape = InferShapeOfDef<Def>> = {
     type: Type<Shape>
     new (obj: Shape): Shape
-    raw(obj: any): Shape
+    create(obj: Shape): Shape
     validate(obj: any): void
+    raw(obj: any): Shape
     extend<ExtendedDef extends Definition>(
         def: ExtendedDef
     ): Model<ExtendedDef & Def>
@@ -82,6 +83,7 @@ export function init(ajv: Ajv.Ajv) {
                 ...def,
                 ...extended,
             })) as any
+        constructor.create = (obj: any) => new constructor(obj)
         constructor.validate = (obj: any) => {
             if (!validate) validate = ajv.compile(constructor.type[s.__schema])
             validate(obj)
