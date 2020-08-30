@@ -1,14 +1,18 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment, @typescript-eslint/no-explicit-any */
-import type Ajv from 'ajv'
-import type * as Immer from 'immer'
 
 import * as s from './symbols'
-import { Type, Definition, TypeCreator } from './types'
+import { Type, Definition } from './types'
 import { mapProps } from './map-props'
 import { ValidationError } from './error'
 
-import type { InferShapeOfDef, InferModelByOptions } from './inference'
+import type { InferShapeOfDef } from './inference'
 import type { JSONSchema } from './types'
+import type {
+    Extensions,
+    InferExtensionsByOptions as InferExtensions,
+    Ajv,
+    Immer,
+} from './extensions'
 
 // TODO(@shqld): might collide
 const genId = () => ((Date.now() % 99) + Math.random() * 99).toString(36)
@@ -28,31 +32,14 @@ export interface Model<Def extends Definition, Shape = InferShapeOfDef<Def>> {
 }
 
 export interface Options {
-    ajv?:
-        | {
-              compile: Ajv.Ajv['compile']
-              errorsText: Ajv.Ajv['errorsText']
-              addSchema: Ajv.Ajv['addSchema']
-          }
-        | false
-    immer?:
-        | {
-              produce: typeof Immer.produce
-              immerable: typeof Immer.immerable
-          }
-        | false
-}
-
-type Extensions = {
-    extend(def: Definition): Extensions
-    validate(obj: any): void
-    produce: Function
+    ajv?: Ajv | false
+    immer?: Immer | false
 }
 
 export function init<Opts extends Options>(
     opts?: Opts
 ): {
-    model<Def extends Definition, Class extends InferModelByOptions<Def, Opts>>(
+    model<Def extends Definition, Class extends InferExtensions<Def, Opts>>(
         def: Def
     ): Class
 } {
@@ -78,10 +65,9 @@ export function init<Opts extends Options>(
         const mapping = []
         const remapping = []
 
-        for (const key in def) {
+        for (const [key, prop] of Object.entries(def)) {
             mapping.push('this.' + key + '=o.' + key)
 
-            const prop: Type | TypeCreator = def[key]
             const type = typeof prop !== 'function' ? prop : prop(modelType)
 
             if (type[s.__source]) {
@@ -99,9 +85,9 @@ export function init<Opts extends Options>(
             mapping.join(';')
         ) as any
 
-        const remapper = remapping.length
-            ? (new Function('o', remapping.join(';')) as (obj: any) => any)
-            : null
+        const remapper =
+            remapping.length &&
+            (new Function('o', remapping.join(';')) as (obj: any) => void)
 
         const raw = (obj: any) => {
             if (remapper) remapper(obj)
@@ -117,19 +103,18 @@ export function init<Opts extends Options>(
         constructor.create = (obj: any) => new constructor(obj)
         constructor.raw = raw
 
-        let cache: Ajv.ValidateFunction
         if (ajv) {
-            const validate = (obj: any) => {
-                if (!cache) cache = ajv.compile(constructor.type[s.__schema])
-                cache(obj)
-                if (cache.errors)
-                    throw new ValidationError(ajv.errorsText(cache.errors))
+            const compiled = ajv.compile(constructor.type[s.__schema])
+            const validate = (obj: any): obj is { a: 1 } => {
+                compiled(obj)
+                if (compiled.errors)
+                    throw new ValidationError(ajv.errorsText(compiled.errors))
+                return true
             }
+
             constructor.validate = validate
-            constructor.raw = (obj: any) => {
-                validate(obj)
-                return raw(obj)
-            }
+            constructor.raw = (obj: any) =>
+                (validate(obj) as true | never) && raw(obj)
         }
         if (immer) {
             constructor.prototype[immer.immerable] = true

@@ -1,15 +1,17 @@
 {
     "compilerOptions": {
-        "declaration": true,
-        "emitDeclarationOnly": true,
+        // "declaration": true,
+        // "emitDeclarationOnly": true,
+        // "outFile": "dist/index.js",
+        "noEmit": true,
         "strict": true,
         "esModuleInterop": true,
         "moduleResolution": "node",
-        "outFile": "dist/index.js",
         "rootDir": "src",
         "sourceRoot": "src",
         "mapRoot": "src",
-        "sourceMap": true
+        "sourceMap": true,
+        "target": "ES2020"
     },
     "include": ["src/**/*"],
     "exclude": ["__tests__", "dist"]
