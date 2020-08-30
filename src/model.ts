@@ -26,7 +26,7 @@ export type Model<Def extends Definition, Shape = InferShapeOfDef<Def>> = {
 }
 
 // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-export function fm(ajv: Ajv.Ajv) {
+export function init(ajv: Ajv.Ajv) {
     function model<Def extends Definition, Class extends Model<Def>>(
         def: Def
     ): Class {
