@@ -21,9 +21,6 @@
     "dependencies": {
         "json-schema": "^0.2.5"
     },
-    "peerDependencies": {
-        "ajv": "6.x"
-    },
     "devDependencies": {
         "@babel/cli": "^7.10.4",
         "@babel/core": "^7.9.0",

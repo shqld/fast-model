@@ -19,22 +19,40 @@ export type ModelInit<Model> = Pick<
     }[keyof Model]
 >
 
-export type Model<Def extends Definition, Shape = InferShapeOfDef<Def>> = {
+export interface Model<Def extends Definition, Shape = InferShapeOfDef<Def>> {
     type: Type<Shape>
     new (obj: Shape): Shape
     create(obj: Shape): Shape
-    validate(obj: any): void
     raw(obj: any): Shape
     extend<ExtendedDef extends Definition>(
         def: ExtendedDef
     ): Model<ExtendedDef & Def>
 }
 
-// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
-export function init(ajv: Ajv.Ajv) {
-    function model<Def extends Definition, Class extends Model<Def>>(
+export interface ValidationModel<
+    Def extends Definition,
+    Shape = InferShapeOfDef<Def>
+> extends Model<Def, Shape> {
+    validate(obj: any): void
+}
+
+export function init(): {
+    model<Def extends Definition, Class extends Model<Def>>(def: Def): Class
+}
+export function init(
+    ajv: Ajv.Ajv
+): {
+    model<Def extends Definition, Class extends ValidationModel<Def>>(
         def: Def
-    ): Class {
+    ): Class
+}
+
+// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
+export function init(ajv?: Ajv.Ajv) {
+    function model<
+        Def extends Definition,
+        Class extends Model<Def> & ValidationModel<Def>
+    >(def: Def): Class {
         const id = genId()
 
         const modelType = new Type<InferShapeOfDef<Def>>({
@@ -67,7 +85,7 @@ export function init(ajv: Ajv.Ajv) {
             mapProps(schema, type[s.__source] || key, type)
         }
 
-        ajv.addSchema(schema)
+        if (ajv) ajv.addSchema(schema)
 
         const constructor: Class = new Function('o', mapping.join(';')) as any
 
@@ -75,7 +93,10 @@ export function init(ajv: Ajv.Ajv) {
             ? (new Function('o', remapping.join(';')) as (obj: any) => any)
             : null
 
-        let validate: Ajv.ValidateFunction
+        const raw = (obj: any) => {
+            if (remapper) remapper(obj)
+            return new constructor(obj)
+        }
 
         constructor.type = modelType
         constructor.extend = ((extended: Def) =>
@@ -84,16 +105,21 @@ export function init(ajv: Ajv.Ajv) {
                 ...extended,
             })) as any
         constructor.create = (obj: any) => new constructor(obj)
-        constructor.validate = (obj: any) => {
-            if (!validate) validate = ajv.compile(constructor.type[s.__schema])
-            validate(obj)
-            if (validate.errors)
-                throw new ValidationError(ajv.errorsText(validate.errors))
-        }
-        constructor.raw = (obj: any) => {
-            constructor.validate(obj)
-            if (remapper) remapper(obj)
-            return new constructor(obj)
+        constructor.raw = raw
+
+        let cache: Ajv.ValidateFunction
+        if (ajv) {
+            const validate = (obj: any) => {
+                if (!cache) cache = ajv.compile(constructor.type[s.__schema])
+                cache(obj)
+                if (cache.errors)
+                    throw new ValidationError(ajv.errorsText(cache.errors))
+            }
+            constructor.validate = validate
+            constructor.raw = (obj: any) => {
+                validate(obj)
+                return raw(obj)
+            }
         }
 
         // @ts-ignore
