@@ -9,17 +9,14 @@ const config = {
     input: path.resolve('src/index.ts'),
     output: [
         {
-            name: 'fast-model',
-            file: path.resolve('dist/index.js'),
-            format: 'iife',
-        },
-        {
             file: path.resolve('dist/index.mjs'),
             format: 'esm',
+            sourcemap: true,
         },
         {
             file: path.resolve('dist/index.cjs'),
             format: 'cjs',
+            sourcemap: true,
         },
     ].filter(Boolean),
     plugins: [
