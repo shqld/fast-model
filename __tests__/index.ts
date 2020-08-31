@@ -287,7 +287,7 @@ describe('types', () => {
 
         describe('multiple item candidates', () => {
             test('primitive', () => {
-                const type = m.array(m.string(), m.number())
+                const type = m.array(m.anyOf(m.string(), m.number()))
 
                 expect(type[s.__schema]).toMatchInlineSnapshot(`
                     Object {
@@ -378,5 +378,56 @@ describe('types', () => {
                 }
             `)
         })
+    })
+
+    test('anyOf', () => {
+        const type = m.anyOf(
+            m.string(),
+            m.number(),
+            m.object({ a: m.boolean() })
+        )
+
+        expect(type[s.__schema]).toMatchInlineSnapshot(`
+            Object {
+              "anyOf": Array [
+                Object {
+                  "type": "string",
+                },
+                Object {
+                  "type": "number",
+                },
+                Object {
+                  "properties": Object {
+                    "a": Object {
+                      "type": "boolean",
+                    },
+                  },
+                  "required": Array [],
+                  "type": "object",
+                },
+              ],
+            }
+        `)
+
+        const type2 = m.object({ a: m.anyOf(m.string(), m.number()) })
+
+        expect(type2[s.__schema]).toMatchInlineSnapshot(`
+            Object {
+              "properties": Object {
+                "a": Object {
+                  "anyOf": Array [
+                    Object {
+                      "type": "string",
+                    },
+                    Object {
+                      "type": "number",
+                    },
+                  ],
+                },
+              },
+              "required": Array [],
+              "type": "object",
+            }
+        `)
     })
 })
