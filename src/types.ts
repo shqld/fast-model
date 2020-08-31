@@ -88,7 +88,36 @@ export const array = <T extends ReadonlyArray<Type>>(
     new Type({
         type: 'array',
         items:
+            // more than 1 element
             objs.length - 1
                 ? { anyOf: objs.map((obj) => obj[s.__schema]) }
                 : objs[0][s.__schema],
     })
+
+// export const tuple = <
+//     T extends ReadonlyArray<any> &
+//         (number extends T['length'] ? never : unknown),
+//     Pure = Pick<T, Exclude<keyof T, keyof Array<Type>>>
+// >(
+//     ...objs: T
+// ): Type<
+//     Array<
+//         keyof Pure extends infer K
+//             ? K extends number
+//                 ? InferValueOfType<T[K]>
+//                 : never
+//             : never
+//     > & {
+//         length: T['length']
+//     } & {
+//             [K in keyof Pure]: InferValueOfType<
+//                 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+//                 // @ts-expect-error
+//                 T[K]
+//             >
+//         }
+// > =>
+//     new Type({
+//         type: 'array',
+//         items: objs.map((obj) => obj[s.__schema]),
+//     })
