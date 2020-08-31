@@ -1,10 +1,9 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
-import Ajv from 'ajv'
-import * as immer from 'immer'
+import Ajv, { ValidationError } from 'ajv'
+import immer from 'immer'
 import * as m from '../src'
 import { init } from '../src'
 import * as s from '../src/symbols'
-import { InferValueOfType } from '../src/inference'
 
 const ajv = new Ajv()
 
@@ -79,9 +78,19 @@ describe('Model', () => {
             })
 
             test('raw construction', () => {
-                expect(() => M1.raw({})).toThrowErrorMatchingInlineSnapshot(
-                    `"data should have required property 'a'"`
-                )
+                expect(validationError(() => M1.raw({})))
+                    .toMatchInlineSnapshot(`
+                    Array [
+                      Object {
+                        "dataPath": "",
+                        "keyword": "required",
+                        "message": "should have required property 'a'",
+                        "params": Object {
+                          "missingProperty": "a",
+                        },
+                      },
+                    ]
+                `)
                 expect(M1.raw({ a: 'aaa' })).toMatchObject({ a: 'aaa' })
             })
             describe('with source()', () => {
@@ -132,14 +141,32 @@ describe('Model', () => {
                 })
 
                 test('raw construction', () => {
-                    expect(() => M1.raw({})).toThrowErrorMatchingInlineSnapshot(
-                        `"data should have required property 'x'"`
-                    )
-                    expect(() =>
-                        M1.raw({ a: 'aaa' })
-                    ).toThrowErrorMatchingInlineSnapshot(
-                        `"data should have required property 'x'"`
-                    )
+                    expect(validationError(() => M1.raw({})))
+                        .toMatchInlineSnapshot(`
+                        Array [
+                          Object {
+                            "dataPath": "",
+                            "keyword": "required",
+                            "message": "should have required property 'x'",
+                            "params": Object {
+                              "missingProperty": "x",
+                            },
+                          },
+                        ]
+                    `)
+                    expect(validationError(() => M1.raw({ a: 'aaa' })))
+                        .toMatchInlineSnapshot(`
+                        Array [
+                          Object {
+                            "dataPath": "",
+                            "keyword": "required",
+                            "message": "should have required property 'x'",
+                            "params": Object {
+                              "missingProperty": "x",
+                            },
+                          },
+                        ]
+                    `)
                     expect(M1.raw({ a: 'aaa', x: 'xxx' })).toMatchObject({
                         a: 'xxx',
                     })
@@ -176,21 +203,45 @@ describe('Model', () => {
                 })
 
                 test('validation', () => {
-                    expect(() =>
-                        M2.validate({})
-                    ).toThrowErrorMatchingInlineSnapshot(
-                        `"data should have required property 'x'"`
-                    )
-                    expect(() =>
-                        M2.validate({ x: 1 })
-                    ).toThrowErrorMatchingInlineSnapshot(
-                        `"data.x should be object"`
-                    )
-                    expect(() =>
-                        M2.validate({ x: { a: 1 } })
-                    ).toThrowErrorMatchingInlineSnapshot(
-                        `"data.x.a should be string"`
-                    )
+                    expect(validationError(() => M2.validate({})))
+                        .toMatchInlineSnapshot(`
+                        Array [
+                          Object {
+                            "dataPath": "",
+                            "keyword": "required",
+                            "message": "should have required property 'x'",
+                            "params": Object {
+                              "missingProperty": "x",
+                            },
+                          },
+                        ]
+                    `)
+                    expect(validationError(() => M2.validate({ x: 1 })))
+                        .toMatchInlineSnapshot(`
+                        Array [
+                          Object {
+                            "dataPath": ".x",
+                            "keyword": "type",
+                            "message": "should be object",
+                            "params": Object {
+                              "type": "object",
+                            },
+                          },
+                        ]
+                    `)
+                    expect(validationError(() => M2.validate({ x: { a: 1 } })))
+                        .toMatchInlineSnapshot(`
+                        Array [
+                          Object {
+                            "dataPath": ".x.a",
+                            "keyword": "type",
+                            "message": "should be string",
+                            "params": Object {
+                              "type": "string",
+                            },
+                          },
+                        ]
+                    `)
                 })
             })
         })
@@ -431,3 +482,25 @@ describe('types', () => {
         `)
     })
 })
+
+function throwable(func: Function): Error {
+    try {
+        func()
+        throw null
+    } catch (err) {
+        if (err === null) throw new Error('The test has not thrown')
+        return { ...err }
+    }
+}
+
+function validationError(func: Function): ValidationError['errors'] {
+    const err = throwable(func) as ValidationError
+
+    expect(err.ajv).toBe(true)
+    expect(err.validation).toBe(true)
+    err.errors.map((error) => {
+        delete error.schemaPath
+    })
+
+    return err.errors
+}

@@ -1,14 +1,13 @@
 import type ajv from 'ajv'
-import type * as immer from 'immer'
+import type { produce } from 'immer'
 
 import type { Definition, JSONSchema } from './types'
 import type { Options, Model } from './model'
+
 import { InferShapeOfDef } from './inference'
 
-export type Ajv = Pick<ajv.Ajv, 'compile' | 'errorsText'> & {
-    addSchema(schema: JSONSchema): void
-}
-export type Immer = Pick<typeof immer, 'produce' | 'immerable'>
+export { ValidationError } from 'ajv'
+export { immerable } from 'immer'
 
 export interface Extensions {
     extend(def: ElementDefinitionOptions): Extensions
@@ -16,10 +15,21 @@ export interface Extensions {
     produce: Function
 }
 
+type Ajv = Pick<ajv.Ajv, 'compile' | 'errorsText'> & {
+    // need a work around with loose type annotation
+    // since different sources of Ajv could be treated as imcompatible
+    // even when they have same version
+    addSchema(schema: JSONSchema): void
+}
+export interface ExtensionOptions {
+    ajv?: Ajv
+    immer?: typeof produce
+}
+
 export type InferExtensionsByOptions<
     Def extends Definition,
     Opts extends Options,
-    Shape = Opts['immer'] extends Immer
+    Shape = Opts['immer'] extends typeof produce
         ? Readonly<InferShapeOfDef<Def>>
         : InferShapeOfDef<Def>
 > = Model<Def, Shape> & {
@@ -35,9 +45,9 @@ export type InferExtensionsByOptions<
               ): InferExtensionsByOptions<ExtendedDef & Def, Opts>
           }
         : {}) &
-    (Opts['immer'] extends Immer
+    (Opts['immer'] extends typeof produce
         ? {
-              produce: Immer['produce'] &
+              produce: typeof produce &
                   (<T extends Shape>(
                       base: T,
                       updater: (draft: T) => T

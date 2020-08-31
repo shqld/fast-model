@@ -3,15 +3,14 @@
 import * as s from './symbols'
 import { Type, Definition } from './types'
 import { mapProps } from './map-props'
-import { ValidationError } from './error'
+import { ValidationError, immerable } from './extensions'
 
 import type { InferShapeOfDef } from './inference'
 import type { JSONSchema } from './types'
 import type {
+    ExtensionOptions,
     Extensions,
     InferExtensionsByOptions as InferExtensions,
-    Ajv,
-    Immer,
 } from './extensions'
 
 // TODO(@shqld): might collide
@@ -31,10 +30,8 @@ export interface Model<Def extends Definition, Shape = InferShapeOfDef<Def>> {
     raw(obj: any): Shape
 }
 
-export interface Options {
-    ajv?: Ajv | false
-    immer?: Immer | false
-}
+// eslint-disable-next-line @typescript-eslint/no-empty-interface
+export interface Options extends ExtensionOptions {}
 
 export function init<Opts extends Options>(
     opts?: Opts
@@ -107,8 +104,7 @@ export function init<Opts extends Options>(
             const compiled = ajv.compile(constructor.type[s.__schema])
             const validate = (obj: any): obj is { a: 1 } => {
                 compiled(obj)
-                if (compiled.errors)
-                    throw new ValidationError(ajv.errorsText(compiled.errors))
+                if (compiled.errors) throw new ValidationError(compiled.errors)
                 return true
             }
 
@@ -117,8 +113,8 @@ export function init<Opts extends Options>(
                 (validate(obj) as true | never) && raw(obj)
         }
         if (immer) {
-            constructor.prototype[immer.immerable] = true
-            constructor.produce = immer.produce
+            constructor.prototype[immerable] = true
+            constructor.produce = immer
         }
 
         // @ts-ignore
