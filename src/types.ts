@@ -82,7 +82,9 @@ export const object = <Def extends Record<string, Type>>(
     return new Type(schema)
 }
 
-export const array = <T extends Type>(obj: T): Type<InferValueOfType<T>> =>
+export const array = <T extends Type>(
+    obj: T
+): Type<Array<InferValueOfType<T>>> =>
     new Type({
         type: 'array',
         items: obj[s.__schema],
@@ -90,7 +92,7 @@ export const array = <T extends Type>(obj: T): Type<InferValueOfType<T>> =>
 
 export const anyOf = <T extends ReadonlyArray<Type>>(
     ...objs: T
-): Type<Array<InferValueOfType<T[number]>>> =>
+): Type<InferValueOfType<T[number]>> =>
     new Type({
         anyOf: objs.map((obj) => obj[s.__schema]),
     })
