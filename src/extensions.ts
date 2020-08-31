@@ -1,11 +1,13 @@
 import type ajv from 'ajv'
 import type * as immer from 'immer'
 
-import type { Definition } from './types'
+import type { Definition, JSONSchema } from './types'
 import type { Options, Model } from './model'
 import { InferShapeOfDef } from './inference'
 
-export type Ajv = Pick<ajv.Ajv, 'compile' | 'addSchema' | 'errorsText'>
+export type Ajv = Pick<ajv.Ajv, 'compile' | 'errorsText'> & {
+    addSchema(schema: JSONSchema): void
+}
 export type Immer = Pick<typeof immer, 'produce' | 'immerable'>
 
 export interface Extensions {
