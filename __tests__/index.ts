@@ -4,6 +4,7 @@ import * as immer from 'immer'
 import * as m from '../src'
 import { init } from '../src'
 import * as s from '../src/symbols'
+import { InferValueOfType } from '../src/inference'
 
 const ajv = new Ajv()
 
@@ -282,6 +283,28 @@ describe('types', () => {
                 '$ref',
                 m1.type[s.__schema].$ref
             )
+        })
+
+        describe('multiple item candidates', () => {
+            test('primitive', () => {
+                const type = m.array(m.string(), m.number())
+
+                expect(type[s.__schema]).toMatchInlineSnapshot(`
+                    Object {
+                      "items": Object {
+                        "anyOf": Array [
+                          Object {
+                            "type": "string",
+                          },
+                          Object {
+                            "type": "number",
+                          },
+                        ],
+                      },
+                      "type": "array",
+                    }
+                `)
+            })
         })
     })
 
