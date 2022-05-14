@@ -2,7 +2,7 @@
 
 An optimized **immutable model** builder and **schema validation** that is blazingly **fast**, strongly **typed**, highly **safe** and super **tiny** (<1KB gzipped).
 
-NOTE: currently under **active** development
+**NOTE: not maintained as of 2022/05/14**
 
 ## Usage
 
